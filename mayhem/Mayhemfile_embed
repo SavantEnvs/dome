@@ -1,0 +1,20 @@
+project: savantenvs/dome
+target: embed-buggy-mhh-run-14
+
+# Backport of the OLD mayhemheroes/dome run 14 bug (issue #1040): the ORIGINAL harness invocation
+# `/embed @@` (no [moduleName]/[destinationFile] args), NOT the current live target's steered
+# invocation (mayhem/Mayhemfile_embed on the `mayhem` branch adds `wren_module_test /dev/null` to
+# dodge this exact crash so the LIVE target can content-fuzz the encoder instead — see that file's
+# comment). Run 14's defect (CWE-20, "malloc(): invalid size (unsorted)") is the heap corruption from
+# embed-standalone.c's `destination = strcat(strdup(fileName), ".inc");`: strdup(fileName) allocates
+# only strlen(fileName)+1 bytes, so appending ".inc" overflows the heap buffer — a real bug in the
+# target's own code, not a driver/harness artifact, confirmed by reading embed-standalone.c at this
+# commit. It is path-keyed (triggers on the input PATH length, not the fuzzed bytes) which is exactly
+# why upstream's later live integration steers around it — but that is a fuzzing-effectiveness
+# concern, not a reason to doubt the crash is genuine.
+cmds:
+  - cmd: /mayhem/embed @@
+    timeout: 10
+testsuite:
+  - https://$MAYHEM_DOMAIN/$MAYHEM_PROJECT/$MAYHEM_TARGET/testsuite.tar
+  - file://mayhem/embed-buggy-mhh-run-14/testsuite
